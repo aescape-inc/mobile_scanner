@@ -206,10 +206,36 @@ public class MobileScanner: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         }
 
         do {
+            // The following device setup is modified to fit the requirements
+            // of the Aescape member app.
             try device.lockForConfiguration()
+
+            // Undocumented feature of points of interest is that value
+            // (0.5, 0.5), which meant to be a central point, actually
+            // disables point of interest and calculates value for
+            // the whole frame.
+            if device.isFocusPointOfInterestSupported {
+                device.focusPointOfInterest = CGPoint(x: 0.5, y: 0.49)
+            }
+            if device.isExposurePointOfInterestSupported {
+                device.exposurePointOfInterest = CGPoint(x: 0.5, y: 0.49)
+            }
+
+            if device.isExposureModeSupported(.continuousAutoExposure) {
+                device.exposureMode = .continuousAutoExposure
+            }
             if device.isFocusModeSupported(.continuousAutoFocus) {
                 device.focusMode = .continuousAutoFocus
             }
+
+            if device.isLowLightBoostSupported {
+                device.automaticallyEnablesLowLightBoostWhenAvailable = true
+            }
+            
+            if device.isSmoothAutoFocusSupported {
+                device.isSmoothAutoFocusEnabled = false
+            }
+
             if #available(iOS 15.4, *) , device.isFocusModeSupported(.autoFocus){
                 device.automaticallyAdjustsFaceDrivenAutoFocusEnabled = false
             }
