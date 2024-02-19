@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:html';
 import 'dart:typed_data';
-import 'dart:ui';
+import 'dart:ui' hide window;
 
 import 'package:js/js.dart';
 import 'package:mobile_scanner/src/enums/barcode_format.dart';
@@ -231,6 +231,57 @@ class ZXingBarcodeReader extends WebBarcodeReaderBase
     prepareVideoElement(video);
     if (stream != null) {
       await attachStreamToVideo(stream, video);
+      await _setupFocusAndExposureIfPossible(stream);
+    }
+  }
+
+  Future<void> _setupFocusAndExposureIfPossible(MediaStream stream) async {
+    const focusModeKey = 'focusMode';
+    const exposureModeKey = 'exposureMode';
+    const continuousKey = 'continuous';
+    const pointsOfInterestKey = 'pointsOfInterest';
+
+    final supportedCapabilities =
+        stream.getVideoTracks().first.getCapabilities();
+    final supportedConstraints =
+        window.navigator.mediaDevices?.getSupportedConstraints();
+
+    final focusModeValues =
+        supportedCapabilities[focusModeKey] as List<dynamic>? ?? [];
+    final exposureModeValues =
+        supportedCapabilities[exposureModeKey] as List<dynamic>? ?? [];
+
+    final continuousFocusSupported = focusModeValues.contains(continuousKey);
+    final continuousExposureSupported =
+        exposureModeValues.contains(continuousKey);
+
+    final poiSupported =
+        supportedConstraints?[pointsOfInterestKey] as bool? ?? false;
+
+    final newConstraints = {
+      if (continuousFocusSupported) focusModeKey: continuousKey,
+      if (continuousExposureSupported) exposureModeKey: continuousKey,
+      if (poiSupported)
+        pointsOfInterestKey: [
+          {'x': 0.5, 'y': 0.5},
+        ],
+    };
+
+    if (newConstraints.isNotEmpty) {
+      try {
+        await stream.getVideoTracks().first.applyConstraints({
+          'advanced': [newConstraints],
+        });
+
+        final appliedConstraints =
+            stream.getVideoTracks().first.getConstraints();
+        window.console.log('Applied constraints: $appliedConstraints');
+      } catch (e) {
+        window.console.error('Failed to apply constraints:');
+        window.console.error(e);
+      }
+    } else {
+      window.console.log('Focus and exposure API is not supported');
     }
   }
 
