@@ -59,6 +59,9 @@ abstract class WebBarcodeReaderBase {
   /// Can enable or disable the flash if available
   Future<void> toggleTorch({required bool enabled});
 
+  /// Set zoom, if supported
+  Future<void> setZoom({required double zoom});
+
   /// Determine whether device has flash
   Future<bool> hasTorch();
 }

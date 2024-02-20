@@ -241,8 +241,9 @@ class ZXingBarcodeReader extends WebBarcodeReaderBase
     const continuousKey = 'continuous';
     const pointsOfInterestKey = 'pointsOfInterest';
 
-    final supportedCapabilities =
-        stream.getVideoTracks().first.getCapabilities();
+    final track = stream.getVideoTracks().first;
+
+    final supportedCapabilities = track.getCapabilities();
     final supportedConstraints =
         window.navigator.mediaDevices?.getSupportedConstraints();
 
@@ -269,12 +270,11 @@ class ZXingBarcodeReader extends WebBarcodeReaderBase
 
     if (newConstraints.isNotEmpty) {
       try {
-        await stream.getVideoTracks().first.applyConstraints({
+        await track.applyConstraints({
           'advanced': [newConstraints],
         });
 
-        final appliedConstraints =
-            stream.getVideoTracks().first.getConstraints();
+        final appliedConstraints = track.getConstraints();
         window.console.log('Applied constraints: $appliedConstraints');
       } catch (e) {
         window.console.error('Failed to apply constraints:');
@@ -332,5 +332,38 @@ class ZXingBarcodeReader extends WebBarcodeReaderBase
   Future<void> stop() async {
     _reader?.reset();
     super.stop();
+  }
+
+  @override
+  Future<void> setZoom({required double zoom}) async {
+    final track = localMediaStream?.getVideoTracks().firstOrNull;
+    if (track == null) return;
+
+    final supportedCapabilities = track.getCapabilities();
+
+    final zoomConstraints =
+        supportedCapabilities['zoom'] as Map<String, dynamic>?;
+    final min = zoomConstraints?['min'] as double?;
+    final max = zoomConstraints?['max'] as double?;
+
+    if (min == null || max == null) {
+      window.console.log('Zoom is not supported for this browser or device');
+      return;
+    }
+
+    final newZoomValue = min + (max - min) * zoom;
+
+    try {
+      await track.applyConstraints({
+        'advanced': [
+          {...track.getConstraints(), 'zoom': newZoomValue},
+        ],
+      });
+      final appliedConstraints = track.getConstraints();
+      window.console.log('Set zoom: $appliedConstraints');
+    } catch (e) {
+      window.console.error('Failed to update zoom:');
+      window.console.error(e);
+    }
   }
 }

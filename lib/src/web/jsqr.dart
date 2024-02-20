@@ -101,4 +101,9 @@ class JsQrCodeReader extends WebBarcodeReaderBase
     final code = jsQR(imgData.data, canvas.width, canvas.height);
     return code;
   }
+
+  @override
+  Future<void> setZoom({required double zoom}) async {
+    // Not implemented
+  }
 }
